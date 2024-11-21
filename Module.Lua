@@ -2,57 +2,57 @@ local PlayersService = game:GetService("Players")
 local Change = {}
 
 local function GetServerEndpoint()
-	local Keywords = { "F3X", "BTools", "Building", "Building Tools" }
+    local Keywords = { "F3X", "BTools", "Building", "Building Tools" }
+    local EndpointKeywords = { "ServerEnd", "Endpoint" }
 
-	local function MatchesKeywords(ToolName)
-		local LowercaseName = ToolName:lower()
-		for _, Keyword in ipairs(Keywords) do
-			if LowercaseName:find(Keyword:lower()) then
-				return true
-			end
-		end
-		return false
-	end
+    local function MatchesKeywords(Name, KeywordsList)
+        local LowercaseName = Name:lower()
+        for _, Keyword in ipairs(KeywordsList) do
+            if LowercaseName:find(Keyword:lower()) then
+                return true
+            end
+        end
+        return false
+    end
 
-	for _, Player in ipairs(PlayersService:GetPlayers()) do
-		for _, Tool in ipairs(Player.Backpack:GetChildren()) do
-			if MatchesKeywords(Tool.Name) then
-				local SyncAPI = Tool:FindFirstChild("SyncAPI")
-				if SyncAPI then
-					local ServerEndpoint = SyncAPI:FindFirstChild("ServerEndpoint")
-					if ServerEndpoint then
-						return ServerEndpoint
-					end
+    local function FindServerEndpoint(SyncAPI)
+        for _, Child in ipairs(SyncAPI:GetChildren()) do
+            if MatchesKeywords(Child.Name, EndpointKeywords) then
+                return Child
+            end
+        end
+        return nil
+    end
 
-					local ServerEndpoint2 = SyncAPI:FindFirstChild("ServerEndPoint")
-					if ServerEndpoint2 then
-						return ServerEndpoint2
-					end
-				end
-			end
-		end
+    for _, Player in ipairs(PlayersService:GetPlayers()) do
+        for _, Tool in ipairs(Player.Backpack:GetChildren()) do
+            if MatchesKeywords(Tool.Name, Keywords) then
+                local SyncAPI = Tool:FindFirstChild("SyncAPI")
+                if SyncAPI then
+                    local Endpoint = FindServerEndpoint(SyncAPI)
+                    if Endpoint then
+                        return Endpoint
+                    end
+                end
+            end
+        end
 
-		if Player.Character then
-			for _, Tool in ipairs(Player.Character:GetChildren()) do
-				if MatchesKeywords(Tool.Name) then
-					local SyncAPI = Tool:FindFirstChild("SyncAPI")
-					if SyncAPI then
-						local ServerEndpoint = SyncAPI:FindFirstChild("ServerEndpoint")
-						if ServerEndpoint then
-							return ServerEndpoint
-						end
+        if Player.Character then
+            for _, Tool in ipairs(Player.Character:GetChildren()) do
+                if MatchesKeywords(Tool.Name, Keywords) then
+                    local SyncAPI = Tool:FindFirstChild("SyncAPI")
+                    if SyncAPI then
+                        local Endpoint = FindServerEndpoint(SyncAPI)
+                        if Endpoint then
+                            return Endpoint
+                        end
+                    end
+                end
+            end
+        end
+    end
 
-						local ServerEndpoint2 = SyncAPI:FindFirstChild("ServerEndPoint")
-						if ServerEndpoint2 then
-							return ServerEndpoint2
-						end
-					end
-				end
-			end
-		end
-	end
-
-	return nil
+    return nil
 end
 
 local function ExecuteArgs(Args)
