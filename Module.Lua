@@ -17,7 +17,7 @@ local function GetServerEndpoint()
 
     local function FindServerEndpoint(SyncAPI)
         for _, Child in ipairs(SyncAPI:GetChildren()) do
-            if MatchesKeywords(Child.Name, EndpointKeywords) then
+            if MatchesKeywords(Child.Name, EndpointKeywords) and Child:IsA("BindableFunction") then
                 return Child
             end
         end
