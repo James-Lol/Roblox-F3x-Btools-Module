@@ -1,10 +1,13 @@
 local PlayersService = game:GetService("Players")
+local LocalPlayer = PlayersService.LocalPlayer
 local Change = {}
 
 local function GetServerEndpoint()
-	local Keywords = { "F3X", "BTools", "Building", "Building Tools" }
+	local BToolsKeywords = { "F3X", "BTools", "Building", "Building Tools" }
+	local EndpointKeywords = { "serverend", "endpoint", "ServerEndPoint\226\128\140","\226\128\140" }
+	local SyncAPIKeywords = { "sync", "api", "syncapi" }
 
-	local function MatchesKeywords(ToolName)
+	local function MatchesKeywords(ToolName, Keywords)
 		local LowercaseName = ToolName:lower()
 		for _, Keyword in ipairs(Keywords) do
 			if LowercaseName:find(Keyword:lower()) then
@@ -14,28 +17,50 @@ local function GetServerEndpoint()
 		return false
 	end
 
-	for _, Player in ipairs(PlayersService:GetPlayers()) do
-		for _, Tool in ipairs(Player.Backpack:GetChildren()) do
-			if MatchesKeywords(Tool.Name) then
-				local SyncAPI = Tool:FindFirstChild("SyncAPI")
-				if SyncAPI then
-					local ServerEndpoint = SyncAPI:FindFirstChild("ServerEndpoint")
-					if ServerEndpoint then
-						return ServerEndpoint
-					end
-				end
+	local function FindSyncAPI(Parent)
+		assert(Parent, "Error: Parent cannot be nil")
+
+		for _, Child in ipairs(Parent:GetChildren()) do
+			if Child:IsA("BindableFunction") and MatchesKeywords(Child.Name, SyncAPIKeywords) then
+				return Child
 			end
 		end
 
-		if Player.Character then
-			for _, Tool in ipairs(Player.Character:GetChildren()) do
-				if MatchesKeywords(Tool.Name) then
-					local SyncAPI = Tool:FindFirstChild("SyncAPI")
-					if SyncAPI then
-						local ServerEndpoint = SyncAPI:FindFirstChild("ServerEndpoint")
-						if ServerEndpoint then
-							return ServerEndpoint
-						end
+		return nil
+	end
+
+	local function FindServerEndpoint(Parent)
+		assert(Parent, "Error: Parent cannot be nil")
+
+		for _, Child in ipairs(Parent:GetChildren()) do
+			if Child:IsA("RemoteFunction") and MatchesKeywords(Child.Name, EndpointKeywords) then
+				return Child
+			end
+		end
+
+		return nil
+	end
+
+	for _, Tool in ipairs(LocalPlayer.Backpack:GetChildren()) do
+		if Tool:IsA("Tool") and MatchesKeywords(Tool.Name, BToolsKeywords) then
+			local SyncAPI = FindSyncAPI(Tool)
+			if SyncAPI then
+				local ServerEndpoint = FindServerEndpoint(SyncAPI)
+				if ServerEndpoint then
+					return ServerEndpoint
+				end
+			end
+		end
+	end
+
+	if LocalPlayer.Character then
+		for _, Tool in ipairs(LocalPlayer.Character:GetChildren()) do
+			if Tool:IsA("Tool") and MatchesKeywords(Tool.Name, BToolsKeywords) then
+				local SyncAPI = FindSyncAPI(Tool)
+				if SyncAPI then
+					local ServerEndpoint = FindServerEndpoint(SyncAPI)
+					if ServerEndpoint then
+						return ServerEndpoint
 					end
 				end
 			end
@@ -45,66 +70,76 @@ local function GetServerEndpoint()
 	return nil
 end
 
+local ServerEndpoint = GetServerEndpoint()
+
 local function ExecuteArgs(Args)
 	assert(Args ~= nil, "Error : ExecuteArgs Args cannot be nil")
-	
-	local ServerEndpoint = GetServerEndpoint()
+
+	if not ServerEndpoint then
+		ServerEndpoint = GetServerEndpoint()
+	end
 
 	if ServerEndpoint then
 		ServerEndpoint:InvokeServer(unpack(Args))
-	else
-		warn("ERROR : No ServerEndpoint found!")
 	end
 end
 
-function Change.SetCollision(Part, CanCollide)
-	assert(Part ~= nil and CanCollide ~= nil, "Argument cannot be nil")
-	
+function Change.SetCollision(Parts, CanCollide)
+	assert(Parts ~= nil and CanCollide ~= nil, "Arguments cannot be nil")
+	assert(type(Parts) == "table", "Parts must be a table")
+
 	local Args = {
 		[1] = "SyncCollision",
-		[2] = {
-			[1] = {
-				["Part"] = Part,
-				["CanCollide"] = CanCollide
-			}
-		}
+		[2] = {}
 	}
-	
+
+	for i, Part in ipairs(Parts) do
+		assert(Part ~= nil, "Part cannot be nil")
+		table.insert(Args[2], {
+			["Part"] = Part,
+			["CanCollide"] = CanCollide
+		})
+	end
+
 	ExecuteArgs(Args)
 end
 
-function Change.SetAnchor(Anchored, Part)
-	assert(Anchored ~= nil and Part ~= nil, "Argument cannot be nil")
-	
+function Change.SetAnchor(Parts, Anchored)
+	assert(Anchored ~= nil and Parts ~= nil, "Arguments cannot be nil")
+	assert(type(Parts) == "table", "Parts must be a table")
+
 	local Args = {
 		[1] = "SyncAnchor",
-		[2] = {
-			[1] = {
-				["Part"] = Part,
-				["Anchored"] = Anchored
-			}
-		}
+		[2] = {}
 	}
-	
+
+	for i, Part in ipairs(Parts) do
+		assert(Part ~= nil, "Part cannot be nil")
+		table.insert(Args[2], {
+			["Part"] = Part,
+			["Anchored"] = Anchored
+		})
+	end
+
 	ExecuteArgs(Args)
 end
 
 function Change.CreatePart(Cframe, Parent)
 	assert(Cframe ~= nil and Parent ~= nil, "Argument cannot be nil")
-	
+
 	local Args = {
 		[1] = "CreatePart",
 		[2] = "Normal",
 		[3] = Cframe,
 		[4] = Parent
 	}
-	
+
 	ExecuteArgs(Args)
 end
 
 function Change.Parent(Part, Parent)
 	assert(Part ~= nil and Parent ~= nil, "Argument cannot be nil")
-	
+
 	local Args = {
 		[1] = "SetParent",
 		[2] = {
@@ -118,7 +153,7 @@ end
 
 function Change.Clone(Part, Parent)
 	assert(Part ~= nil and Parent ~= nil, "Argument cannot be nil")
-	
+
 	local Args = {
 		[1] = "Clone",
 		[2] = {
@@ -130,84 +165,104 @@ function Change.Clone(Part, Parent)
 	ExecuteArgs(Args)
 end
 
-function Change.Destory(Part)
-	assert(Part ~= nil, "Argument cannot be nil")
-	
+function Change.Destroy(Parts)
+	assert(Parts ~= nil, "Argument cannot be nil")
+	assert(type(Parts) == "table", "Parts must be a table")
+
 	local Args = {
 		[1] = "Remove",
-		[2] = {
-			[1] = Part
-		}
+		[2] = {}
 	}
-	
+
+	for i, Part in ipairs(Parts) do
+		assert(Part ~= nil, "Part cannot be nil")
+		table.insert(Args[2], Part)
+	end
+
 	ExecuteArgs(Args)
 end
 
-function Change.MovePart(Part, Cframe)
-	assert(Part ~= nil and Cframe ~= nil, "Argument cannot be nil")
-	
+function Change.MovePart(Parts, CFrame)
+	assert(Parts ~= nil and CFrame ~= nil, "Arguments cannot be nil")
+	assert(type(Parts) == "table", "Parts must be a table")
+
 	local Args = {
 		[1] = "SyncMove",
-		[2] = {
-			[1] = {
-				["Part"] = Part,
-				["CFrame"] = Cframe
-			}
-		}
+		[2] = {}
 	}
-	
+
+	for i, Part in ipairs(Parts) do
+		assert(Part ~= nil, "Part cannot be nil")
+		table.insert(Args[2], {
+			["Part"] = Part,
+			["CFrame"] = CFrame
+		})
+	end
+
 	ExecuteArgs(Args)
 end
 
-function Change.Resize(Part, Size, Cframe)
-	assert(Part ~= nil and Size ~= nil and Cframe ~= nil, "Argument cannot be nil")
-	
+function Change.Resize(Parts, Size, CFrame)
+	assert(Parts ~= nil and Size ~= nil and CFrame ~= nil, "Arguments cannot be nil")
+	assert(type(Parts) == "table", "Parts must be a table")
+
 	local Args = {
 		[1] = "SyncResize",
-		[2] = {
-			[1] = {
-				["Part"] = Part,
-				["CFrame"] = Cframe,
-				["Size"] = Size
-			}
-		}
+		[2] = {}
 	}
-	
+
+	for i, Part in ipairs(Parts) do
+		assert(Part ~= nil, "Part cannot be nil")
+		table.insert(Args[2], {
+			["Part"] = Part,
+			["CFrame"] = CFrame,
+			["Size"] = Size
+		})
+	end
+
 	ExecuteArgs(Args)
 end
 
-function Change.Rotate(Part, Cframe_Angles)
-	assert(Part ~= nil and Cframe_Angles ~= nil, "Argument cannot be nil")
-	
-	local Cframe = Part.CFrame * Cframe_Angles
-	
+function Change.Rotate(Parts, CFrame_Angles)
+	assert(Parts ~= nil and CFrame_Angles ~= nil, "Arguments cannot be nil")
+	assert(type(Parts) == "table", "Parts must be a table")
+
 	local Args = {
 		[1] = "SyncRotate",
-		[2] = {
-			[1] = {
-				["Part"] = Part,
-				["CFrame"] = Cframe
-			}
-		}
+		[2] = {}
 	}
-	
+
+	for i, Part in ipairs(Parts) do
+		assert(Part ~= nil, "Part cannot be nil")
+		local CFrame = Part.CFrame * CFrame_Angles
+		table.insert(Args[2], {
+			["Part"] = Part,
+			["CFrame"] = CFrame
+		})
+	end
+
 	ExecuteArgs(Args)
 end
 
-function Change.Color(Part, Color)
-	assert(Part ~= nil and Color ~= nil, "Argument cannot be nil")
-	
+
+function Change.Color(Parts, Color)
+	assert(Parts ~= nil and Color ~= nil, "Arguments cannot be nil")
+	assert(type(Parts) == "table", "Parts must be a table")
+
 	local Args = {
 		[1] = "SyncColor",
-		[2] = {
-			[1] = {
-				["Color"] = Color,
-				["UnionColoring"] = true,
-				["Part"] = Part,
-			}
-		}
+		[2] = {}
 	}
-	
+
+	for i, Part in ipairs(Parts) do
+		assert(Part ~= nil, "Part cannot be nil")
+		table.insert(Args[2], {
+			["Color"] = Color,
+			["UnionColoring"] = true,
+			["Part"] = Part
+		})
+	end
+
 	ExecuteArgs(Args)
 end
 
@@ -224,148 +279,191 @@ Surface should look like this :
 					}
 --]]
 
-function Change.Surface(Part, Surface)
-	assert(Part ~= nil and Surface ~= nil, "Argument cannot be nil")
-	
+function Change.Surface(Parts, Surface)
+	assert(Parts ~= nil and Surface ~= nil, "Arguments cannot be nil")
+	assert(type(Parts) == "table", "Parts must be a table")
+	assert(type(Surface) == "table", "Surface must be a table")
+
 	local Args = {
 		[1] = "SyncSurface",
-		[2] = {
-			[1] = {
-				["Part"] = Part,
-				["Surfaces"] = Surface
-			}
-		}
+		[2] = {}
 	}
+
+	for i, Part in ipairs(Parts) do
+		assert(Part ~= nil, "Part cannot be nil")
+		table.insert(Args[2], {
+			["Part"] = Part,
+			["Surfaces"] = Surface
+		})
+	end
 
 	ExecuteArgs(Args)
 end
 
-function Change.AddMesh(Part)
-	assert(Part ~= nil, "Argument cannot be nil")
-	
+function Change.AddMesh(Parts)
+	assert(Parts ~= nil, "Argument cannot be nil")
+	assert(type(Parts) == "table", "Parts must be a table")
+
 	local Args = {
 		[1] = "CreateMeshes",
-		[2] = {
-			[1] = {
-				["Part"] = Part
-			}
-		}
+		[2] = {}
 	}
-	
+
+	for i, Part in ipairs(Parts) do
+		assert(Part ~= nil, "Part cannot be nil")
+		table.insert(Args[2], {
+			["Part"] = Part
+		})
+	end
+
 	ExecuteArgs(Args)
 end
 
-function Change.SetMesh(Part, MeshId, TextureId, Scale) --These are Optional
-	assert(Part ~= nil, "Argument cannot be nil")
-	
+function Change.SetMesh(Parts, MeshId, TextureId, Scale) -- The MeshId, TextureId and Scale are optional
+	assert(Parts ~= nil, "Argument cannot be nil")
+	assert(type(Parts) == "table", "Parts must be a table")
+
 	local Properties = {}
-	
+
 	if MeshId then
 		Properties["MeshId"] = "rbxassetid://" .. MeshId
 	end
-	
+
 	if TextureId then
 		Properties["TextureId"] = "rbxassetid://" .. TextureId
 	end
-	
+
 	if Scale then
 		Properties["Scale"] = Scale
 	end
-	
+
 	local Args = {
 		[1] = "SyncMesh",
-		[2] = {
-			[1] = {
-				["Part"] = Part,
-			}
-		}
+		[2] = {}
 	}
-	
-	for key, value in pairs(Properties) do
-		Args[2][1][key] = value
+
+	for i, Part in ipairs(Parts) do
+		assert(Part ~= nil, "Part cannot be nil")
+		local MeshProperties = { ["Part"] = Part }
+		for key, value in pairs(Properties) do
+			MeshProperties[key] = value
+		end
+		table.insert(Args[2], MeshProperties)
 	end
-	
+
 	ExecuteArgs(Args)
 end
 
-function Change.CreateTexture(Part, TextureType, Face)
-	assert(Part ~= nil and TextureType ~= nil and Face ~= nil, "Argument cannot be nil")
-	
-	local ValidTextureTypes = {"Decal", "Texture"}
+function Change.CreateTexture(Parts, TextureType, Face)
+	assert(Parts ~= nil and TextureType ~= nil and Face ~= nil, "Arguments cannot be nil")
+	assert(type(Parts) == "table", "Parts must be a table")
 
+	local ValidTextureTypes = {"Decal", "Texture"}
 	local Valid = false
+
 	for _, Type in pairs(ValidTextureTypes) do
 		if Type == TextureType then
 			Valid = true
+			break
 		end
 	end
 
 	if not Valid then
+		error("Invalid TextureType provided")
 		return
 	end
 
 	local Args = {
 		[1] = "CreateTextures",
-		[2] = {
-			[1] = {
-				["Part"] = Part,
-				["Face"] = Face,
-				["TextureType"] = TextureType
-			}
-		}
+		[2] = {}
 	}
+
+	for i, Part in ipairs(Parts) do
+		assert(Part ~= nil, "Part cannot be nil")
+		table.insert(Args[2], {
+			["Part"] = Part,
+			["Face"] = Face,
+			["TextureType"] = TextureType
+		})
+	end
 
 	ExecuteArgs(Args)
 end
 
-function Change.SetTexture(Part, TextureId, TextureType, Face)
-	assert(Part ~= nil and TextureId ~= nil and TextureType ~= nil and Face ~= nil, "Argument cannot be nil")
-	
-	local ValidTextureTypes = {"Decal", "Texture"}
+function Change.SetTexture(Parts, TextureId, TextureType, Face, StudsPerTileU, StudsPerTileV) -- The TextureId, StudsPerTileU and StudsPerTileV are optional
+	assert(Parts ~= nil and TextureType ~= nil and Face ~= nil, "Arguments cannot be nil")
+	assert(type(Parts) == "table", "Parts must be a table")
 
+	local ValidTextureTypes = {"Decal", "Texture"}
 	local Valid = false
+
 	for _, Type in pairs(ValidTextureTypes) do
 		if Type == TextureType then
 			Valid = true
+			break
 		end
 	end
 
 	if not Valid then
+		error("Invalid TextureType provided")
 		return
 	end
 
 	local Args = {
 		[1] = "SyncTexture",
-		[2] = {
-			[1] = {
-				["Face"] = Face,
-				["Part"] = Part,
-				["Texture"] = "rbxassetid://" .. TextureId,
-				["TextureType"] = TextureType
-			}
-		}
+		[2] = {}
 	}
+
+	for i, Part in ipairs(Parts) do
+		assert(Part ~= nil, "Part cannot be nil")
+
+		local TextureProperties = {
+			["Part"] = Part,
+			["Face"] = Face,
+			["TextureType"] = TextureType
+		}
+
+		if TextureId then
+			TextureProperties["Texture"] = "rbxassetid://" .. TextureId
+		end
+
+		if StudsPerTileU then
+			TextureProperties["StudsPerTileU"] = StudsPerTileU
+		end
+
+		if StudsPerTileV then
+			TextureProperties["StudsPerTileV"] = StudsPerTileV
+		end
+
+		table.insert(Args[2], TextureProperties)
+	end
 
 	ExecuteArgs(Args)
 end
 
-function Change.SetName(Part, Name)
-	assert(Part ~= nil and Name ~= nil, "Argument cannot be nil")
-	
+function Change.SetName(Parts, Name)
+	assert(Parts ~= nil and Name ~= nil, "Arguments cannot be nil")
+	assert(type(Parts) == "table", "Parts must be a table")
+
 	local Args = {
 		[1] = "SetName",
-		[2] = {
-			[1] = Part
-		},
-		[3] = Name
+		[2] = {}
 	}
-	
+
+	for i, Part in ipairs(Parts) do
+		assert(Part ~= nil, "Part cannot be nil")
+		table.insert(Args[2], Part)
+	end
+
+	Args[3] = Name
+
 	ExecuteArgs(Args)
 end
+
 
 function Change.Weld(Part1, Part2)
 	assert(Part1 ~= nil and Part2 ~= nil, "Argument cannot be nil")
-	
+
 	local Args = {
 		[1] = "CreateWelds",
 		[2] = {
@@ -373,139 +471,145 @@ function Change.Weld(Part1, Part2)
 		},
 		[3] = Part2
 	}
-	
+
 	ExecuteArgs(Args)
 end
 
 function Change.RemoveWelds(Welds)
 	assert(Welds ~= nil, "Argument cannot be nil")
-	
+
 	local Args = {
 		[1] = "RemoveWelds",
 		[2] = Welds
 	}
-	
+
 	ExecuteArgs(Args)
 end
 
-function Change.SetLocked(Part, Locked)
-	assert(Part ~= nil and Locked ~= nil, "Argument cannot be nil")
-	
+function Change.SetLocked(Parts, Locked)
+	assert(Parts ~= nil and Locked ~= nil, "Arguments cannot be nil")
+	assert(type(Parts) == "table", "Parts must be a table")
+
 	local Args = {
 		[1] = "SetLocked",
-		[2] = {
-			[1] = Part
-		},
-		[3] = Locked
+		[2] = {}
 	}
-	
+
+	for i, Part in ipairs(Parts) do
+		assert(Part ~= nil, "Part cannot be nil")
+		table.insert(Args[2], Part)
+	end
+
+	Args[3] = Locked
+
 	ExecuteArgs(Args)
 end
 
-function Change.SetMaterial(Part, Material)
-	assert(Part ~= nil and Material ~= nil, "Argument cannot be nil")
-	
+function Change.SetMaterial(Parts, Material)
+	assert(Parts ~= nil and Material ~= nil, "Arguments cannot be nil")
+	assert(type(Parts) == "table", "Parts must be a table")
+
 	local Args = {
 		[1] = "SyncMaterial",
-		[2] = {
-			[1] = {
-				["Part"] = Part,
-				["Material"] = Material
-			}
-		}
+		[2] = {}
 	}
-	
+
+	for i, Part in ipairs(Parts) do
+		assert(Part ~= nil, "Part cannot be nil")
+		table.insert(Args[2], {
+			["Part"] = Part,
+			["Material"] = Material
+		})
+	end
+
 	ExecuteArgs(Args)
 end
 
-function Change.SetTransparency(Part, Transparency)
-	assert(Part ~= nil and Transparency ~= nil, "Argument cannot be nil")
-	
+function Change.SetTransparency(Parts, Transparency)
+	assert(Parts ~= nil and Transparency ~= nil, "Arguments cannot be nil")
+	assert(type(Parts) == "table", "Parts must be a table")
+
 	local Args = {
 		[1] = "SyncMaterial",
-		[2] = {
-			[1] = {
-				["Part"] = Part,
-				["Transparency"] = Transparency
-			}
-		}
+		[2] = {}
 	}
-	
+
+	for i, Part in ipairs(Parts) do
+		assert(Part ~= nil, "Part cannot be nil")
+		table.insert(Args[2], {
+			["Part"] = Part,
+			["Transparency"] = Transparency
+		})
+	end
+
 	ExecuteArgs(Args)
 end
 
-function Change.SetReflectance(Part, Reflectance)
-	assert(Part ~= nil and Reflectance ~= nil, "Argument cannot be nil")
-	
+function Change.SetReflectance(Parts, Reflectance)
+	assert(Parts ~= nil and Reflectance ~= nil, "Arguments cannot be nil")
+	assert(type(Parts) == "table", "Parts must be a table")
+
 	local Args = {
 		[1] = "SyncMaterial",
-		[2] = {
-			[1] = {
-				["Part"] = Part,
-				["Reflectance"] = Reflectance
-			}
-		}
+		[2] = {}
 	}
-	
+
+	for i, Part in ipairs(Parts) do
+		assert(Part ~= nil, "Part cannot be nil")
+		table.insert(Args[2], {
+			["Part"] = Part,
+			["Reflectance"] = Reflectance
+		})
+	end
+
 	ExecuteArgs(Args)
 end
 
-function Change.CreateEffect(Part, EffectType)
-	assert(Part ~= nil and EffectType ~= nil, "Argument cannot be nil")
-	
-	local VaildEffects = {"Smoke","Fire","Sparkles","PointLight","SurfaceLight","SpotLight"}
-	local LightEffects = {"PointLight","SurfaceLight","SpotLight"}
+function Change.CreateEffect(Parts, EffectType)
+	assert(Parts ~= nil and EffectType ~= nil, "Arguments cannot be nil")
+	assert(type(Parts) == "table", "Parts must be a table")
+
+	local ValidEffects = {"Smoke", "Fire", "Sparkles", "PointLight", "SurfaceLight", "SpotLight"}
+	local LightEffects = {"PointLight", "SurfaceLight", "SpotLight"}
 
 	local IsEffect = false
-
-	for _,Effect in pairs(VaildEffects) do
+	for _, Effect in pairs(ValidEffects) do
 		if Effect == EffectType then
 			IsEffect = true
+			break
 		end
 	end
 
-	if IsEffect == false then
+	if not IsEffect then
 		return
 	end
 
 	local IsLightEffect = false
-
-	for _,Effect in pairs(LightEffects) do
+	for _, Effect in pairs(LightEffects) do
 		if Effect == EffectType then
 			IsLightEffect = true
+			break
 		end
 	end
 
-	local Args = nil
+	local Args = {
+		[1] = IsLightEffect and "CreateLights" or "CreateDecorations",
+		[2] = {}
+	}
 
-	if IsLightEffect then
-		Args = {
-			[1] = "CreateLights",
-			[2] = {
-				[1] = {
-					["Part"] = Part,
-					["LightType"] = EffectType
-				}
-			}
-		}
-	else
-		Args = {
-			[1] = "CreateDecorations",
-			[2] = {
-				[1] = {
-					["Part"] = Part,
-					["DecorationType"] = EffectType
-				}
-			}
-		}
+	for _, Part in ipairs(Parts) do
+		assert(Part ~= nil, "Part cannot be nil")
+		local EffectArgs = {["Part"] = Part, [IsLightEffect and "LightType" or "DecorationType"] = EffectType}
+		table.insert(Args[2], EffectArgs)
 	end
 
 	ExecuteArgs(Args)
 end
 
+
 function Change.ChangeEffect(Effect, Properties)
 	assert(Effect ~= nil and Properties ~= nil, "Argument cannot be nil")
-	
+
 	local VaildEffects = {"Smoke", "Fire", "Sparkles", "PointLight", "SurfaceLight", "SpotLight"}
 	local LightEffects = {"PointLight", "SurfaceLight", "SpotLight"}
 	local EffectType = Effect.ClassName
@@ -558,16 +662,16 @@ end
 
 function Change.Group(Type, Parent, Parts)
 	assert(Type ~= nil and Parent ~= nil and Parts ~= nil, "Argument cannot be nil")
-	
+
 	local ValidGroupTypes = {
 		"Model",
 		"Folder"
 	}
-	
+
 	if not table.find(ValidGroupTypes,Type) then
 		return
 	end
-	
+
 	local Args = {
 		[1] = "CreateGroup",
 		[2] = Type,
@@ -580,16 +684,16 @@ end
 
 function Change.UnGroup(Groups)
 	assert(Groups ~= nil, "Argument cannot be nil")
-	
+
 	if typeof(Groups) ~= "table" then
 		warn("ERROR : Invalid groups must be a table of the group/groups")
 	end
-	
+
 	local Args = {
 		[1] = "Ungroup",
 		[2] = Groups,
 	}
-	
+
 	ExecuteArgs(Args)
 end
 
