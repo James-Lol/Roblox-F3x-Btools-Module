@@ -1,4 +1,4 @@
-print("Version 1.2")
+print("Version 1.3")
 local PlayersService = game:GetService("Players")
 local Change = {}
 
@@ -18,6 +18,7 @@ local function GetServerEndpoint()
 
     local function FindServerEndpoint(SyncAPI)
         for _, Child in ipairs(SyncAPI:GetChildren()) do
+		print(Child.Name)
             if MatchesKeywords(Child.Name, EndpointKeywords) and Child:IsA("RemoteFunction") then
                 return Child
             end
