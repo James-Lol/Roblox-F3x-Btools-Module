@@ -157,7 +157,7 @@ function Change.Clone(Part, Parent)
 	ExecuteArgs(Args)
 end
 
-function Change.Destory(Part)
+function Change.Destroy(Part)
 	assert(Part ~= nil, "Argument cannot be nil")
 
 	local Args = {
