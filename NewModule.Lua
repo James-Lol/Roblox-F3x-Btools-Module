@@ -80,7 +80,10 @@ local function ExecuteArgs(Args)
 	end
 
 	if ServerEndpoint then
+		print(unpack(Args))
 		ServerEndpoint:InvokeServer(unpack(Args))
+	else
+		warn("No ServerEndPoint Found")
 	end
 end
 
