@@ -23,6 +23,11 @@ local function GetServerEndpoint()
 					if ServerEndpoint then
 						return ServerEndpoint
 					end
+
+					local ServerEndpoint2 = SyncAPI:FindFirstChild("ServerEndPoint")
+					if ServerEndpoint2 then
+						return ServerEndpoint2
+					end
 				end
 			end
 		end
@@ -35,6 +40,11 @@ local function GetServerEndpoint()
 						local ServerEndpoint = SyncAPI:FindFirstChild("ServerEndpoint")
 						if ServerEndpoint then
 							return ServerEndpoint
+						end
+
+						local ServerEndpoint2 = SyncAPI:FindFirstChild("ServerEndPoint")
+						if ServerEndpoint2 then
+							return ServerEndpoint2
 						end
 					end
 				end
