@@ -4,7 +4,7 @@ local Change = {}
 
 local function GetServerEndpoint()
 	local BToolsKeywords = { "F3X", "BTools", "Building", "Building Tools" }
-	local EndpointKeywords = { "serverend", "endpoint" }
+	local EndpointKeywords = { "serverend", "endpoint", "ServerEndPoint\226\128\140","\226\128\140" }
 	local SyncAPIKeywords = { "sync", "api", "syncapi" }
 
 	local function MatchesKeywords(ToolName, Keywords)
