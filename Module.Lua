@@ -1,66 +1,83 @@
-print("Version 1.3")
 local PlayersService = game:GetService("Players")
+local LocalPlayer = PlayersService.LocalPlayer
 local Change = {}
 
 local function GetServerEndpoint()
-    local Keywords = { "F3X", "BTools", "Building", "Building Tools" }
-    local EndpointKeywords = { "ServerEnd", "Endpoint" }
+	local BToolsKeywords = { "F3X", "BTools", "Building", "Building Tools" }
+	local EndpointKeywords = { "serverend", "endpoint" }
+	local SyncAPIKeywords = { "sync", "api", "syncapi" }
 
-    local function MatchesKeywords(Name, KeywordsList)
-        local LowercaseName = Name:lower()
-        for _, Keyword in ipairs(KeywordsList) do
-            if LowercaseName:find(Keyword:lower()) then
-                return true
-            end
-        end
-        return false
-    end
+	local function MatchesKeywords(ToolName, Keywords)
+		local LowercaseName = ToolName:lower()
+		for _, Keyword in ipairs(Keywords) do
+			if LowercaseName:find(Keyword:lower()) then
+				return true
+			end
+		end
+		return false
+	end
 
-    local function FindServerEndpoint(SyncAPI)
-        for _, Child in ipairs(SyncAPI:GetChildren()) do
-		print(Child.Name)
-            if MatchesKeywords(Child.Name, EndpointKeywords) and Child:IsA("RemoteFunction") then
-                return Child
-            end
-        end
-        return nil
-    end
+	local function FindSyncAPI(Parent)
+		assert(Parent, "Error: Parent cannot be nil")
 
-    for _, Player in ipairs(PlayersService:GetPlayers()) do
-        for _, Tool in ipairs(Player.Backpack:GetChildren()) do
-            if MatchesKeywords(Tool.Name, Keywords) then
-                local SyncAPI = Tool:FindFirstChild("SyncAPI")
-                if SyncAPI then
-                    local Endpoint = FindServerEndpoint(SyncAPI)
-                    if Endpoint then
-                        return Endpoint
-                    end
-                end
-            end
-        end
+		for _, Child in ipairs(Parent:GetChildren()) do
+			if Child:IsA("BindableFunction") and MatchesKeywords(Child.Name, SyncAPIKeywords) then
+				return Child
+			end
+		end
 
-        if Player.Character then
-            for _, Tool in ipairs(Player.Character:GetChildren()) do
-                if MatchesKeywords(Tool.Name, Keywords) then
-                    local SyncAPI = Tool:FindFirstChild("SyncAPI")
-                    if SyncAPI then
-                        local Endpoint = FindServerEndpoint(SyncAPI)
-                        if Endpoint then
-                            return Endpoint
-                        end
-                    end
-                end
-            end
-        end
-    end
+		return nil
+	end
 
-    return nil
+	local function FindServerEndpoint(Parent)
+		assert(Parent, "Error: Parent cannot be nil")
+
+		for _, Child in ipairs(Parent:GetChildren()) do
+			if Child:IsA("RemoteFunction") and MatchesKeywords(Child.Name, EndpointKeywords) then
+				return Child
+			end
+		end
+
+		return nil
+	end
+
+	for _, Tool in ipairs(LocalPlayer.Backpack:GetChildren()) do
+		if Tool:IsA("Tool") and MatchesKeywords(Tool.Name, BToolsKeywords) then
+			local SyncAPI = FindSyncAPI(Tool)
+			if SyncAPI then
+				local ServerEndpoint = FindServerEndpoint(SyncAPI)
+				if ServerEndpoint then
+					return ServerEndpoint
+				end
+			end
+		end
+	end
+
+	if LocalPlayer.Character then
+		for _, Tool in ipairs(LocalPlayer.Character:GetChildren()) do
+			if Tool:IsA("Tool") and MatchesKeywords(Tool.Name, BToolsKeywords) then
+				local SyncAPI = FindSyncAPI(Tool)
+				if SyncAPI then
+					local ServerEndpoint = FindServerEndpoint(SyncAPI)
+					if ServerEndpoint then
+						return ServerEndpoint
+					end
+				end
+			end
+		end
+	end
+
+	return nil
 end
+
+local ServerEndpoint = GetServerEndpoint()
 
 local function ExecuteArgs(Args)
 	assert(Args ~= nil, "Error : ExecuteArgs Args cannot be nil")
-	
-	local ServerEndpoint = GetServerEndpoint()
+
+	if not ServerEndpoint then
+		ServerEndpoint = GetServerEndpoint()
+	end
 
 	if ServerEndpoint then
 		ServerEndpoint:InvokeServer(unpack(Args))
@@ -69,7 +86,7 @@ end
 
 function Change.SetCollision(Part, CanCollide)
 	assert(Part ~= nil and CanCollide ~= nil, "Argument cannot be nil")
-	
+
 	local Args = {
 		[1] = "SyncCollision",
 		[2] = {
@@ -79,13 +96,13 @@ function Change.SetCollision(Part, CanCollide)
 			}
 		}
 	}
-	
+
 	ExecuteArgs(Args)
 end
 
 function Change.SetAnchor(Anchored, Part)
 	assert(Anchored ~= nil and Part ~= nil, "Argument cannot be nil")
-	
+
 	local Args = {
 		[1] = "SyncAnchor",
 		[2] = {
@@ -95,26 +112,26 @@ function Change.SetAnchor(Anchored, Part)
 			}
 		}
 	}
-	
+
 	ExecuteArgs(Args)
 end
 
 function Change.CreatePart(Cframe, Parent)
 	assert(Cframe ~= nil and Parent ~= nil, "Argument cannot be nil")
-	
+
 	local Args = {
 		[1] = "CreatePart",
 		[2] = "Normal",
 		[3] = Cframe,
 		[4] = Parent
 	}
-	
+
 	ExecuteArgs(Args)
 end
 
 function Change.Parent(Part, Parent)
 	assert(Part ~= nil and Parent ~= nil, "Argument cannot be nil")
-	
+
 	local Args = {
 		[1] = "SetParent",
 		[2] = {
@@ -128,7 +145,7 @@ end
 
 function Change.Clone(Part, Parent)
 	assert(Part ~= nil and Parent ~= nil, "Argument cannot be nil")
-	
+
 	local Args = {
 		[1] = "Clone",
 		[2] = {
@@ -142,20 +159,20 @@ end
 
 function Change.Destory(Part)
 	assert(Part ~= nil, "Argument cannot be nil")
-	
+
 	local Args = {
 		[1] = "Remove",
 		[2] = {
 			[1] = Part
 		}
 	}
-	
+
 	ExecuteArgs(Args)
 end
 
 function Change.MovePart(Part, Cframe)
 	assert(Part ~= nil and Cframe ~= nil, "Argument cannot be nil")
-	
+
 	local Args = {
 		[1] = "SyncMove",
 		[2] = {
@@ -165,13 +182,13 @@ function Change.MovePart(Part, Cframe)
 			}
 		}
 	}
-	
+
 	ExecuteArgs(Args)
 end
 
 function Change.Resize(Part, Size, Cframe)
 	assert(Part ~= nil and Size ~= nil and Cframe ~= nil, "Argument cannot be nil")
-	
+
 	local Args = {
 		[1] = "SyncResize",
 		[2] = {
@@ -182,15 +199,15 @@ function Change.Resize(Part, Size, Cframe)
 			}
 		}
 	}
-	
+
 	ExecuteArgs(Args)
 end
 
 function Change.Rotate(Part, Cframe_Angles)
 	assert(Part ~= nil and Cframe_Angles ~= nil, "Argument cannot be nil")
-	
+
 	local Cframe = Part.CFrame * Cframe_Angles
-	
+
 	local Args = {
 		[1] = "SyncRotate",
 		[2] = {
@@ -200,13 +217,13 @@ function Change.Rotate(Part, Cframe_Angles)
 			}
 		}
 	}
-	
+
 	ExecuteArgs(Args)
 end
 
 function Change.Color(Part, Color)
 	assert(Part ~= nil and Color ~= nil, "Argument cannot be nil")
-	
+
 	local Args = {
 		[1] = "SyncColor",
 		[2] = {
@@ -217,7 +234,7 @@ function Change.Color(Part, Color)
 			}
 		}
 	}
-	
+
 	ExecuteArgs(Args)
 end
 
@@ -236,7 +253,7 @@ Surface should look like this :
 
 function Change.Surface(Part, Surface)
 	assert(Part ~= nil and Surface ~= nil, "Argument cannot be nil")
-	
+
 	local Args = {
 		[1] = "SyncSurface",
 		[2] = {
@@ -252,7 +269,7 @@ end
 
 function Change.AddMesh(Part)
 	assert(Part ~= nil, "Argument cannot be nil")
-	
+
 	local Args = {
 		[1] = "CreateMeshes",
 		[2] = {
@@ -261,27 +278,27 @@ function Change.AddMesh(Part)
 			}
 		}
 	}
-	
+
 	ExecuteArgs(Args)
 end
 
 function Change.SetMesh(Part, MeshId, TextureId, Scale) --These are Optional
 	assert(Part ~= nil, "Argument cannot be nil")
-	
+
 	local Properties = {}
-	
+
 	if MeshId then
 		Properties["MeshId"] = "rbxassetid://" .. MeshId
 	end
-	
+
 	if TextureId then
 		Properties["TextureId"] = "rbxassetid://" .. TextureId
 	end
-	
+
 	if Scale then
 		Properties["Scale"] = Scale
 	end
-	
+
 	local Args = {
 		[1] = "SyncMesh",
 		[2] = {
@@ -290,17 +307,17 @@ function Change.SetMesh(Part, MeshId, TextureId, Scale) --These are Optional
 			}
 		}
 	}
-	
+
 	for key, value in pairs(Properties) do
 		Args[2][1][key] = value
 	end
-	
+
 	ExecuteArgs(Args)
 end
 
 function Change.CreateTexture(Part, TextureType, Face)
 	assert(Part ~= nil and TextureType ~= nil and Face ~= nil, "Argument cannot be nil")
-	
+
 	local ValidTextureTypes = {"Decal", "Texture"}
 
 	local Valid = false
@@ -330,7 +347,7 @@ end
 
 function Change.SetTexture(Part, TextureId, TextureType, Face)
 	assert(Part ~= nil and TextureId ~= nil and TextureType ~= nil and Face ~= nil, "Argument cannot be nil")
-	
+
 	local ValidTextureTypes = {"Decal", "Texture"}
 
 	local Valid = false
@@ -361,7 +378,7 @@ end
 
 function Change.SetName(Part, Name)
 	assert(Part ~= nil and Name ~= nil, "Argument cannot be nil")
-	
+
 	local Args = {
 		[1] = "SetName",
 		[2] = {
@@ -369,13 +386,13 @@ function Change.SetName(Part, Name)
 		},
 		[3] = Name
 	}
-	
+
 	ExecuteArgs(Args)
 end
 
 function Change.Weld(Part1, Part2)
 	assert(Part1 ~= nil and Part2 ~= nil, "Argument cannot be nil")
-	
+
 	local Args = {
 		[1] = "CreateWelds",
 		[2] = {
@@ -383,24 +400,24 @@ function Change.Weld(Part1, Part2)
 		},
 		[3] = Part2
 	}
-	
+
 	ExecuteArgs(Args)
 end
 
 function Change.RemoveWelds(Welds)
 	assert(Welds ~= nil, "Argument cannot be nil")
-	
+
 	local Args = {
 		[1] = "RemoveWelds",
 		[2] = Welds
 	}
-	
+
 	ExecuteArgs(Args)
 end
 
 function Change.SetLocked(Part, Locked)
 	assert(Part ~= nil and Locked ~= nil, "Argument cannot be nil")
-	
+
 	local Args = {
 		[1] = "SetLocked",
 		[2] = {
@@ -408,13 +425,13 @@ function Change.SetLocked(Part, Locked)
 		},
 		[3] = Locked
 	}
-	
+
 	ExecuteArgs(Args)
 end
 
 function Change.SetMaterial(Part, Material)
 	assert(Part ~= nil and Material ~= nil, "Argument cannot be nil")
-	
+
 	local Args = {
 		[1] = "SyncMaterial",
 		[2] = {
@@ -424,13 +441,13 @@ function Change.SetMaterial(Part, Material)
 			}
 		}
 	}
-	
+
 	ExecuteArgs(Args)
 end
 
 function Change.SetTransparency(Part, Transparency)
 	assert(Part ~= nil and Transparency ~= nil, "Argument cannot be nil")
-	
+
 	local Args = {
 		[1] = "SyncMaterial",
 		[2] = {
@@ -440,13 +457,13 @@ function Change.SetTransparency(Part, Transparency)
 			}
 		}
 	}
-	
+
 	ExecuteArgs(Args)
 end
 
 function Change.SetReflectance(Part, Reflectance)
 	assert(Part ~= nil and Reflectance ~= nil, "Argument cannot be nil")
-	
+
 	local Args = {
 		[1] = "SyncMaterial",
 		[2] = {
@@ -456,13 +473,13 @@ function Change.SetReflectance(Part, Reflectance)
 			}
 		}
 	}
-	
+
 	ExecuteArgs(Args)
 end
 
 function Change.CreateEffect(Part, EffectType)
 	assert(Part ~= nil and EffectType ~= nil, "Argument cannot be nil")
-	
+
 	local VaildEffects = {"Smoke","Fire","Sparkles","PointLight","SurfaceLight","SpotLight"}
 	local LightEffects = {"PointLight","SurfaceLight","SpotLight"}
 
@@ -515,7 +532,7 @@ end
 
 function Change.ChangeEffect(Effect, Properties)
 	assert(Effect ~= nil and Properties ~= nil, "Argument cannot be nil")
-	
+
 	local VaildEffects = {"Smoke", "Fire", "Sparkles", "PointLight", "SurfaceLight", "SpotLight"}
 	local LightEffects = {"PointLight", "SurfaceLight", "SpotLight"}
 	local EffectType = Effect.ClassName
@@ -568,16 +585,16 @@ end
 
 function Change.Group(Type, Parent, Parts)
 	assert(Type ~= nil and Parent ~= nil and Parts ~= nil, "Argument cannot be nil")
-	
+
 	local ValidGroupTypes = {
 		"Model",
 		"Folder"
 	}
-	
+
 	if not table.find(ValidGroupTypes,Type) then
 		return
 	end
-	
+
 	local Args = {
 		[1] = "CreateGroup",
 		[2] = Type,
@@ -590,16 +607,16 @@ end
 
 function Change.UnGroup(Groups)
 	assert(Groups ~= nil, "Argument cannot be nil")
-	
+
 	if typeof(Groups) ~= "table" then
 		warn("ERROR : Invalid groups must be a table of the group/groups")
 	end
-	
+
 	local Args = {
 		[1] = "Ungroup",
 		[2] = Groups,
 	}
-	
+
 	ExecuteArgs(Args)
 end
 
