@@ -63,8 +63,6 @@ local function ExecuteArgs(Args)
 
 	if ServerEndpoint then
 		ServerEndpoint:InvokeServer(unpack(Args))
-	else
-		warn("ERROR : No ServerEndpoint found!")
 	end
 end
 
