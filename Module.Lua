@@ -100,7 +100,7 @@ function Change.SetCollision(Part, CanCollide)
 	ExecuteArgs(Args)
 end
 
-function Change.SetAnchor(Anchored, Part)
+function Change.SetAnchor(Part, Anchored)
 	assert(Anchored ~= nil and Part ~= nil, "Argument cannot be nil")
 
 	local Args = {
