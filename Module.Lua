@@ -1,4 +1,4 @@
-print("Version 1.1")
+print("Version 1.2")
 local PlayersService = game:GetService("Players")
 local Change = {}
 
