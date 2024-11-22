@@ -116,17 +116,34 @@ function Change.SetAnchor(Part, Anchored)
 	ExecuteArgs(Args)
 end
 
-function Change.CreatePart(Cframe, Parent)
-	assert(Cframe ~= nil and Parent ~= nil, "Argument cannot be nil")
+function Change.CreatePart(CFrame, Parent, PartType)
+    assert(CFrame ~= nil and Parent ~= nil, "Argument cannot be nil")
 
-	local Args = {
-		[1] = "CreatePart",
-		[2] = "Normal",
-		[3] = Cframe,
-		[4] = Parent
-	}
+    local ValidPartTypes = {
+        "Normal",
+        "Server",
+        "SyncModule",
+        "Truss",
+        "Corner",
+        "Wedge",
+        "Cylinder",
+        "Ball",
+        "Seat",
+        "Vehicle Seat"
+    }
 
-	ExecuteArgs(Args)
+    if not PartType or not table.find(ValidPartTypes, PartType) then
+        PartType = "Normal"
+    end
+
+    local Args = {
+        [1] = "CreatePart",
+        [2] = PartType,
+        [3] = CFrame,
+        [4] = Parent
+    }
+
+    ExecuteArgs(Args)
 end
 
 function Change.Parent(Part, Parent)
