@@ -320,22 +320,6 @@ function Change.Surface(Part, Surface)
 	}
 
 	ExecuteArgs(Args2)
-
-	for SurfaceName, SurfaceType in pairs(Surface) do
-		local ArgName = SurfaceName .. "Surface"
-
-		local Args3 = {
-			[1] = ArgName,
-			[2] = {
-				[1] = {
-					["Part"] = Part,
-					["SurfaceType"] = SurfaceType
-				}
-			}
-		}
-
-		ExecuteArgs(Args3)
-	end
 end
 
 function Change.AddMesh(Part)
