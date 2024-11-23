@@ -80,7 +80,13 @@ local function ExecuteArgs(Args)
 	end
 
 	if ServerEndpoint then
-		ServerEndpoint:InvokeServer(unpack(Args))
+		local success, errorMessage = pcall(function()
+			ServerEndpoint:InvokeServer(unpack(Args))
+		end)
+
+		if not success then
+			warn("Failed to invoke server: " .. errorMessage)
+		end
 	end
 end
 
