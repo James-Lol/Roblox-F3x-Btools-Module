@@ -116,8 +116,8 @@ function Change.SetAnchor(Part, Anchored)
 	ExecuteArgs(Args)
 end
 
-function Change.CreatePart(CFrame, Parent, PartType)
-    assert(CFrame ~= nil and Parent ~= nil, "Argument cannot be nil")
+function Change.CreatePart(PartCFrame, PartParent, PartType)
+    assert(PartCFrame ~= nil and PartParent ~= nil, "Arguments cannot be nil")
 
     local ValidPartTypes = {
         "Normal",
@@ -128,21 +128,42 @@ function Change.CreatePart(CFrame, Parent, PartType)
         "Ball",
         "Seat",
         "Vehicle Seat",
-	"Spawn"
+        "Spawn"
     }
 
     if not PartType or not table.find(ValidPartTypes, PartType) then
         PartType = "Normal"
     end
 
-    local Args = {
+    local CreationArguments = {
         [1] = "CreatePart",
         [2] = PartType,
-        [3] = CFrame,
-        [4] = Parent
+        [3] = PartCFrame,
+        [4] = PartParent
     }
 
-    ExecuteArgs(Args)
+    ExecuteArgs(CreationArguments)
+
+    local StartTime = os.clock()
+    local CreatedPart = nil
+    local DefaultSize = Vector3.new(4, 1, 2)
+
+    repeat
+        for _, Child in ipairs(PartParent:GetChildren()) do
+            if Child:IsA("BasePart") 
+                and (Child.Position - PartCFrame.Position).Magnitude < 0.01 
+                and Child.Size == DefaultSize then
+                CreatedPart = Child
+                break
+            end
+        end
+        if CreatedPart then
+            break
+        end
+        task.wait(0.01)
+    until os.clock() - StartTime >= 0.2
+
+    return CreatedPart
 end
 
 function Change.Parent(Part, Parent)
