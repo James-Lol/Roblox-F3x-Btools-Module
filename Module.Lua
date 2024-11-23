@@ -308,6 +308,18 @@ function Change.Surface(Part, Surface)
 	}
 
 	ExecuteArgs(Args)
+
+	local Args2 = {
+		[1] = "SyncAppearance",
+		[2] = {
+			[1] = {
+				["Part"] = Part,
+				["Surfaces"] = Surface
+			}
+		}
+	}
+
+	ExecuteArgs(Args2)
 end
 
 function Change.AddMesh(Part)
@@ -486,6 +498,18 @@ function Change.SetMaterial(Part, Material)
 	}
 
 	ExecuteArgs(Args)
+
+	local Args2 = {
+		[1] = "SyncAppearance",
+		[2] = {
+			[1] = {
+				["Part"] = Part,
+				["Material"] = Material
+			}
+		}
+	}
+
+	ExecuteArgs(Args2)
 end
 
 function Change.SetTransparency(Part, Transparency)
@@ -502,6 +526,18 @@ function Change.SetTransparency(Part, Transparency)
 	}
 
 	ExecuteArgs(Args)
+
+	local Args2 = {
+		[1] = "SyncAppearance",
+		[2] = {
+			[1] = {
+				["Part"] = Part,
+				["Transparency"] = Transparency
+			}
+		}
+	}
+
+	ExecuteArgs(Args2)
 end
 
 function Change.SetReflectance(Part, Reflectance)
@@ -518,6 +554,18 @@ function Change.SetReflectance(Part, Reflectance)
 	}
 
 	ExecuteArgs(Args)
+
+	local Args2 = {
+		[1] = "SyncAppearance",
+		[2] = {
+			[1] = {
+				["Part"] = Part,
+				["Reflectance"] = Reflectance
+			}
+		}
+	}
+
+	ExecuteArgs(Args2)
 end
 
 function Change.CreateEffect(Part, EffectType)
