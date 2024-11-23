@@ -121,15 +121,14 @@ function Change.CreatePart(CFrame, Parent, PartType)
 
     local ValidPartTypes = {
         "Normal",
-        "Server",
-        "SyncModule",
         "Truss",
         "Corner",
         "Wedge",
         "Cylinder",
         "Ball",
         "Seat",
-        "Vehicle Seat"
+        "Vehicle Seat",
+	"Spawn"
     }
 
     if not PartType or not table.find(ValidPartTypes, PartType) then
@@ -138,9 +137,9 @@ function Change.CreatePart(CFrame, Parent, PartType)
 
     local Args = {
         [1] = "CreatePart",
-        [2] = Parent,
+        [2] = PartType,
         [3] = CFrame,
-        [4] = PartType
+        [4] = Parent
     }
 
     ExecuteArgs(Args)
