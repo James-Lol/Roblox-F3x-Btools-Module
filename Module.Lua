@@ -138,9 +138,9 @@ function Change.CreatePart(CFrame, Parent, PartType)
 
     local Args = {
         [1] = "CreatePart",
-        [2] = PartType,
+        [2] = Parent,
         [3] = CFrame,
-        [4] = Parent
+        [4] = PartType
     }
 
     ExecuteArgs(Args)
