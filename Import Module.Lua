@@ -7,12 +7,12 @@ function Module.Import(ImportCode,DelayPerPart)
 
 	local BtoolsModule = loadstring(game:HttpGet("https://raw.githubusercontent.com/James-Lol/Roblox-F3x-Btools-Module/refs/heads/main/Module.Lua"))()
 	local HttpService = game:GetService("HttpService")
-	local ExportBaseUrl = 'http://www.f3xteam.com/bt/export/%s'
+	local ExportBaseUrl = "http://www.f3xteam.com/bt/export/%s"
 
 	local function ImportCreationData(CreationId)
 		local CreationData
 		local Success, ErrorMessage = pcall(function()
-			local Response = game:HttpGet(ExportBaseUrl:format(CreationId))
+			local Response = HttpService:GetAsync(ExportBaseUrl:format(CreationId))
 			CreationData = HttpService:JSONDecode(Response)
 		end)
 
@@ -32,109 +32,87 @@ function Module.Import(ImportCode,DelayPerPart)
 		return nil
 	end
 
-	local ObjectTypes = {
-		Part = 0,
-		WedgePart = 1,
-		CornerWedgePart = 2,
-		VehicleSeat = 3,
-		Seat = 4,
-		TrussPart = 5,
-		SpecialMesh = 6,
-		Texture = 7,
-		Decal = 8,
-		PointLight = 9,
-		SpotLight = 10,
-		SurfaceLight = 11,
-		Smoke = 12,
-		Fire = 13,
-		Sparkles = 14
-	}
-
-	local DefaultObjectNames = {
-		Part = "Part",
-		WedgePart = "Wedge",
-		CornerWedgePart = "CornerWedge",
-		VehicleSeat = "VehicleSeat",
-		Seat = "Seat",
-		TrussPart = "Truss",
-		SpecialMesh = "Mesh",
-		Texture = "Texture",
-		Decal = "Decal",
-		PointLight = "PointLight",
-		SpotLight = "SpotLight",
-		SurfaceLight = "SurfaceLight",
-		Smoke = "Smoke",
-		Fire = "Fire",
-		Sparkles = "Sparkles"
-	}
-
-	local function SliceArray(Array, StartIndex, EndIndex)
-		local SlicedArray = {}
-		for Index = StartIndex, EndIndex do
-			table.insert(SlicedArray, Array[Index])
-		end
-		return SlicedArray
-	end
+	local Items = CreationData["Items"]
 
 	local ConstructedObjects = {}
 
-	if not CreationData.Items or type(CreationData.Items) ~= "table" then
-		warn("Invalid Or Missing Items In CreationData.")
-		return nil
-	end
+	local PartTypes = {
+		[0] = "Normal",
+		[1] = "Wedge",
+		[2] = "Corner",
+		[3] = "Vehicle Seat",
+		[4] = "Seat",
+		[5] = "Truss",
+		[8] = "Spawn"
+	}
 
-	for Index, ItemData in ipairs(CreationData.Items) do
-		if type(ItemData) ~= "table" then
-			warn("Invalid Item Data At Index " .. Index)
-			continue
+	local function GetPartType(Number,NumberShape)
+		local PartType = PartTypes[Number]
+		if not PartType then
+			warn("Unknown PartType: " .. tostring(Number))
+			return "Normal"
 		end
 
+		local Shapes = {
+			[0] = "Ball",
+			[1] = "Normal",
+			[2] = "Cylinder",
+		}
+
+		if PartType == "Normal" and NumberShape then
+			return Shapes[NumberShape] or "Normal"
+		else
+			return PartType
+		end
+	end
+
+	local function Slice(Table, Start, End)
+		local Slice = {}
+		for Index = Start, End do
+			table.insert(Slice, Table[Index])
+		end
+		return Slice
+	end
+
+	for Index, ItemData in pairs(Items) do
 		coroutine.wrap(function()
-			local CreatedObject
-			print(ItemData[1],ItemData.ClassName)
-			if ItemData[1] <= ObjectTypes.TrussPart then
-				local PartType = "Normal"
-				if ItemData[1] == ObjectTypes.WedgePart then
-					PartType = "Wedge"
-				elseif ItemData[1] == ObjectTypes.CornerWedgePart then
-					PartType = "Corner"
-				elseif ItemData[1] == ObjectTypes.VehicleSeat then
-					PartType = "Vehicle Seat"
-				elseif ItemData[1] == ObjectTypes.Seat then
-					PartType = "Seat"
-				elseif ItemData[1] == ObjectTypes.TrussPart then
-					PartType = "Truss"
-				end
+			local PartType = "Normal"
+			if ItemData[33] then
+				PartType = GetPartType(ItemData[1],ItemData[33])
+			else
+				PartType = GetPartType(ItemData[1])
+			end
 
-				local CFrameValue = CFrame.new(unpack(SliceArray(ItemData, 7, 18)))
+			if PartTypes[ItemData[1]] then --If it's a part?
+				local PartSize = Vector3.new(unpack(Slice(ItemData, 4, 6)))
+				local PartCFrame = CFrame.new(unpack(Slice(ItemData, 7, 18)))
+				local PartColor = Color3.new(ItemData[19], ItemData[20], ItemData[21])
+				local PartMaterial = ItemData[22]
+				local IsAnchored = ItemData[23] == 1
+				local PartCanCollide = ItemData[24] == 1
+				local PartReflectance = ItemData[25]
+				local PartTransparency = ItemData[26]
+				local PartSurfaces = {
+					["Top"] = ItemData[27],
+					["Bottom"] = ItemData[28],
+					["Front"] = ItemData[29],
+					["Back"] = ItemData[30],
+					["Left"] = ItemData[31],
+					["Right"] = ItemData[32],
+				}
 
-				local PartParent = game.Workspace
-
-				CreatedObject = BtoolsModule.CreatePart(CFrameValue, PartParent, PartType)
-
-				if CreatedObject then
-					BtoolsModule.Resize(CreatedObject, Vector3.new(unpack(SliceArray(ItemData, 4, 6))), CFrameValue)
-					BtoolsModule.Color(CreatedObject, Color3.new(ItemData[19], ItemData[20], ItemData[21]))
-					BtoolsModule.SetMaterial(CreatedObject, ItemData[22])
-					BtoolsModule.SetAnchor(CreatedObject, ItemData[23] == 1)
-					BtoolsModule.SetCollision(CreatedObject, ItemData[24] == 1)
-					BtoolsModule.SetReflectance(CreatedObject, ItemData[25])
-					BtoolsModule.SetTransparency(CreatedObject, ItemData[26])
-					BtoolsModule.Surface(CreatedObject, {
-						["Top"] = ItemData[27],
-						["Bottom"] = ItemData[28],
-						["Front"] = ItemData[29],
-						["Back"] = ItemData[30],
-						["Left"] = ItemData[31],
-						["Right"] = ItemData[32]
-					})
-					ConstructedObjects[Index] = CreatedObject
-				else
-					warn("Failed To Create Part.")
-				end
+				local CreatedPart = BtoolsModule.CreatePart(PartCFrame, game:GetService("Workspace"), PartType)
+				BtoolsModule.Resize(CreatedPart, PartSize, PartCFrame)
+				BtoolsModule.Color(CreatedPart, PartColor)
+				BtoolsModule.SetMaterial(CreatedPart, PartMaterial)
+				BtoolsModule.SetAnchor(CreatedPart, IsAnchored)
+				BtoolsModule.SetCollision(CreatedPart, PartCanCollide)
+				BtoolsModule.SetReflectance(CreatedPart, PartReflectance)
+				BtoolsModule.SetTransparency(CreatedPart, PartTransparency)
+				BtoolsModule.Surface(CreatedPart, PartSurfaces)
+				table.insert(BtoolsModule,CreatedPart)
 			end
 		end)()
-
 		task.wait(DelayPerPart)
 	end
 
