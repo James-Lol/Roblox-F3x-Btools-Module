@@ -80,7 +80,7 @@ function Module.Import(ImportCode,DelayPerPart)
 
 	if not CreationData.Items or type(CreationData.Items) ~= "table" then
 		warn("Invalid Or Missing Items In CreationData.")
-		return
+		return nil
 	end
 
 	for Index, ItemData in ipairs(CreationData.Items) do
