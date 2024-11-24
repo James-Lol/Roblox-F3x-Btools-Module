@@ -91,7 +91,7 @@ function Module.Import(ImportCode,DelayPerPart)
 
 		coroutine.wrap(function()
 			local CreatedObject
-			print(ItemData[1])
+			print(ItemData[1],ItemData.ClassName)
 			if ItemData[1] <= ObjectTypes.TrussPart then
 				local PartType = "Normal"
 				if ItemData[1] == ObjectTypes.WedgePart then
