@@ -5,6 +5,7 @@ F3x Module V1 Documentation
 2. Module.SetAnchor(Part, Anchored)  Sets the anchored property of a part to Anchored.
 
 3. Module.CreatePart(CFrame, Parent, PartType)  Creates a new part at the specified CFrame and sets its parent to the specified Parent. [PartType not required]
+This also monstly returnes the created Part but sometimes it dosen't!
 
 All Part Types :
 "Normal","Truss","Wedge","Corner","Cylinder","Ball","Seat","Vehicle Seat","Spawn"
