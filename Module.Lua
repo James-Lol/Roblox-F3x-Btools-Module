@@ -307,17 +307,19 @@ function Change.Surface(Part, Surface)
 
 	ExecuteArgs(Args)
 
-	local Args2 = {
-		[1] = "SyncAppearance",
-		[2] = {
-			[1] = {
-				["Part"] = Part,
-				["Surfaces"] = Surface
+	for Face,SurfaceType in pairs(Surface) do
+		local Args2 = {
+			[1] = "SyncAppearance",
+			[2] = {
+				[1] = {
+					["Part"] = Part,
+					[Face.."Surface"] = SurfaceType
+				}
 			}
 		}
-	}
 
-	ExecuteArgs(Args2)
+		ExecuteArgs(Args2)
+	end
 end
 
 function Change.AddMesh(Part)
