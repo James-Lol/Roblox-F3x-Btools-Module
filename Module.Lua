@@ -152,13 +152,11 @@ function Change.CreatePart(PartCFrame, PartParent, PartType)
 
     local StartTime = os.clock()
     local CreatedPart = nil
-    local DefaultSize = Vector3.new(4, 1, 2)
 
     repeat
         for _, Child in ipairs(PartParent:GetChildren()) do
             if Child:IsA("BasePart") 
-                and (Child.Position - PartCFrame.Position).Magnitude < 0.01 
-                and Child.Size == DefaultSize then
+                and (Child.Position - PartCFrame.Position).Magnitude < 0.01 then
                 CreatedPart = Child
                 break
             end
