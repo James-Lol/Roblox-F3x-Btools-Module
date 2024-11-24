@@ -12,7 +12,7 @@ function Module.Import(ImportCode,DelayPerPart)
 	local function ImportCreationData(CreationId)
 		local CreationData
 		local Success, ErrorMessage = pcall(function()
-			local Response = HttpService:GetAsync(ExportBaseUrl:format(CreationId))
+			local Response = game:HttpGet(ExportBaseUrl:format(CreationId))
 			CreationData = HttpService:JSONDecode(Response)
 		end)
 
